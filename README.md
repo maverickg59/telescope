@@ -1,6 +1,6 @@
 # 🔭 Telescope
 
-A local Mermaid diagram viewer. Drop `.mmd` files into folders, see them rendered instantly in the browser.
+A local Mermaid diagram viewer with hot reloading. Drop `.mmd` files into folders, see them rendered instantly in the browser. Edit a diagram and the browser updates automatically.
 
 ## Setup
 
