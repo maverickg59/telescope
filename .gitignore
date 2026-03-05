@@ -1,0 +1,5 @@
+/node_modules                                          
+/diagrams/*     
+!/diagrams/test/
+/diagrams/test/*
+!/diagrams/test/test.mmd
