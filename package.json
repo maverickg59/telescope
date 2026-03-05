@@ -1,5 +1,13 @@
 {
-  "name": "mermaid-viewer",
+  "name": "telescope",
+  "description": "Local Mermaid diagram viewer with hot reloading",
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": {
+    "name": "Christopher White",
+    "url": "https://chriswhite.rocks",
+    "email": "chris@chriswhite.rocks"
+  },
   "private": true,
   "scripts": {
     "dev": "bun --watch run index.ts"
