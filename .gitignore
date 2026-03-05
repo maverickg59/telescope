@@ -6,3 +6,4 @@
 !/diagrams/dbml/test/
 !/diagrams/mermaid/
 /diagrams/mermaid/*
+!/diagrams/mermaid/test/
