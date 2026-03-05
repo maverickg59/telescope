@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Mermaid Viewer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, system-ui, sans-serif;
+      background: #0f0f1a;
+      color: #e0e0e0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 1.25rem;
+      background: #1a1a2e;
+      border-bottom: 1px solid #2a2a4a;
+    }
+
+    .nav-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #e0e0e0;
+      letter-spacing: 0.02em;
+    }
+
+    .nav-controls {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    nav label {
+      font-size: 0.8rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    nav select {
+      background: #2a2a4a;
+      color: #e0e0e0;
+      border: 1px solid #3a3a5a;
+      border-radius: 4px;
+      padding: 0.4rem 0.6rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    nav select:hover {
+      border-color: #5a5a8a;
+    }
+
+    #diagram-container {
+      flex: 1;
+      overflow: auto;
+      padding: 2rem;
+    }
+
+    #diagram-container .mermaid {
+      transform-origin: top left;
+      transition: transform 0.1s ease;
+    }
+
+    #diagram-container .mermaid svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .empty {
+      color: #666;
+      font-style: italic;
+    }
+
+    ::-webkit-scrollbar {
+      background: #0f0f1a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #2a2a4a;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3a3a5a;
+    }
+
+    ::-webkit-scrollbar-corner {
+      background: #0f0f1a;
+    }
+  </style>
+</head>
+
+<body>
+  <nav>
+    <span class="nav-title">🔭 Telescope</span>
+    <div class="nav-controls">
+      <label for="project-select">Project</label>
+      <select id="project-select"></select>
+      <label for="diagram-select">Diagram</label>
+      <select id="diagram-select"></select>
+    </div>
+  </nav>
+  <div id="diagram-container">
+    <p class="empty">Loading...</p>
+  </div>
+
+  <!--
+    Themes: default | neutral | dark | forest | base
+    Flowchart options:
+      padding (15)         - padding between label and shape
+      nodeSpacing (50)     - spacing between nodes on same level
+      rankSpacing (50)     - spacing between nodes on different levels
+      diagramPadding (20)  - padding around entire diagram
+      curve (rounded)      - basis | linear | rounded | cardinal
+      wrappingWidth (200)  - width for text wrapping
+      defaultRenderer      - dagre-wrapper | dagre-d3 | elk
+  -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      flowchart: { padding: 15 },
+      themeVariables: { fontSize: '20px' },
+    });
+
+    const projectSelect = document.getElementById('project-select');
+    const diagramSelect = document.getElementById('diagram-select');
+    const container = document.getElementById('diagram-container');
+
+    let allDiagrams = [];
+
+    function getProjects() {
+      return [...new Set(allDiagrams.map(d => d.project))];
+    }
+
+    function getDiagramsForProject(project) {
+      return allDiagrams.filter(d => d.project === project);
+    }
+
+    function populateProjects() {
+      const projects = getProjects();
+      projectSelect.innerHTML = projects
+        .map(p => `<option value="${p}">${p}</option>`)
+        .join('');
+    }
+
+    function populateDiagrams(project) {
+      const diagrams = getDiagramsForProject(project);
+      diagramSelect.innerHTML = diagrams
+        .map(d => `<option value="${d.name}">${d.name}</option>`)
+        .join('');
+    }
+
+    async function renderDiagram(project, name) {
+      const res = await fetch(`/api/diagram/${project}/${name}`);
+      if (!res.ok) {
+        container.innerHTML = '<p class="empty">Diagram not found</p>';
+        return;
+      }
+      const code = await res.text();
+      container.innerHTML = '<div class="mermaid"></div>';
+      const el = container.querySelector('.mermaid');
+      const { svg } = await mermaid.render('diagram-svg', code);
+      el.innerHTML = svg;
+      scale = 1;
+      panX = 0;
+      panY = 0;
+      applyZoom();
+    }
+
+    projectSelect.addEventListener('change', () => {
+      const project = projectSelect.value;
+      populateDiagrams(project);
+      renderDiagram(project, diagramSelect.value);
+    });
+
+    diagramSelect.addEventListener('change', () => {
+      renderDiagram(projectSelect.value, diagramSelect.value);
+    });
+
+    // Pan
+    let isPanning = false;
+    let panX = 0, panY = 0;
+    let startX = 0, startY = 0;
+
+    function applyTransform() {
+      const el = container.querySelector('.mermaid');
+      if (el) el.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+    }
+
+    container.addEventListener('mousedown', (e) => {
+      isPanning = true;
+      startX = e.clientX - panX;
+      startY = e.clientY - panY;
+      container.style.cursor = 'grabbing';
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isPanning) return;
+      panX = e.clientX - startX;
+      panY = e.clientY - startY;
+      applyTransform();
+    });
+
+    window.addEventListener('mouseup', () => {
+      isPanning = false;
+      container.style.cursor = 'grab';
+    });
+
+    container.style.cursor = 'grab';
+
+    // Zoom
+    let scale = 1;
+    const ZOOM_STEP = 0.2;
+    const MIN_SCALE = 0.2;
+    const MAX_SCALE = 5;
+
+    function applyZoom() {
+      applyTransform();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (!e.metaKey && !e.ctrlKey) return;
+      if (e.key === '=' || e.key === '+') {
+        e.preventDefault();
+        scale = Math.min(MAX_SCALE, scale + ZOOM_STEP);
+        applyZoom();
+      } else if (e.key === '-') {
+        e.preventDefault();
+        scale = Math.max(MIN_SCALE, scale - ZOOM_STEP);
+        applyZoom();
+      } else if (e.key === '0') {
+        e.preventDefault();
+        scale = 1;
+        applyZoom();
+      }
+    });
+
+    // Live reload
+    const sse = new EventSource('/api/reload');
+    sse.onmessage = () => {
+      renderDiagram(projectSelect.value, diagramSelect.value);
+    };
+
+    // Init
+    const res = await fetch('/api/diagrams');
+    allDiagrams = await res.json();
+
+    if (allDiagrams.length === 0) {
+      container.innerHTML = '<p class="empty">No .mmd files found in diagrams/</p>';
+    } else {
+      populateProjects();
+      populateDiagrams(projectSelect.value);
+      renderDiagram(projectSelect.value, diagramSelect.value);
+    }
+  </script>
+</body>
+
+</html>
