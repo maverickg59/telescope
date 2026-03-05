@@ -10,12 +10,21 @@
   },
   "private": true,
   "scripts": {
-    "dev": "bun --watch run index.ts"
+    "dev": "bun --watch run index.ts",
+    "build:dbml": "bunx vite build"
   },
   "dependencies": {
-    "hono": "^4"
+    "@dbml/core": "^6.4.0",
+    "@xyflow/react": "^12.10.1",
+    "dagre": "^0.8.5",
+    "hono": "^4",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
-    "@types/bun": "^1.3.10"
+    "@types/bun": "^1.3.10",
+    "@types/dagre": "^0.7.54",
+    "@vitejs/plugin-react": "^5.1.4",
+    "vite": "^7.3.1"
   }
 }

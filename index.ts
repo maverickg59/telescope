@@ -3,6 +3,7 @@ import { serveStatic } from "hono/bun";
 import { readdir, readFile } from "node:fs/promises";
 import { watch } from "node:fs";
 import { join } from "node:path";
+import { Parser } from "@dbml/core";
 
 const app = new Hono();
 const DIAGRAMS_DIR = join(import.meta.dir, "diagrams");
@@ -29,24 +30,34 @@ interface DiagramEntry {
   project: string;
   name: string;
   file: string;
+  type: "mermaid" | "dbml";
 }
 
-async function scanDiagrams(): Promise<DiagramEntry[]> {
+async function scanDiagrams(type: "mermaid" | "dbml"): Promise<DiagramEntry[]> {
   const entries: DiagramEntry[] = [];
-  const projects = await readdir(DIAGRAMS_DIR, { withFileTypes: true });
+  const ext = type === "mermaid" ? ".mmd" : ".dbml";
+  const typeDir = join(DIAGRAMS_DIR, type);
+
+  let projects;
+  try {
+    projects = await readdir(typeDir, { withFileTypes: true });
+  } catch {
+    return entries;
+  }
 
   for (const project of projects) {
     if (!project.isDirectory()) continue;
-    const projectDir = join(DIAGRAMS_DIR, project.name);
+    const projectDir = join(typeDir, project.name);
     const files = await readdir(projectDir);
 
     for (const file of files) {
-      if (!file.endsWith(".mmd")) continue;
-      const name = file.replace(/\.mmd$/, "");
+      if (!file.endsWith(ext)) continue;
+      const name = file.replace(new RegExp(`\\${ext}$`), "");
       entries.push({
         project: project.name,
         name,
         file: `${project.name}/${file}`,
+        type,
       });
     }
   }
@@ -56,14 +67,14 @@ async function scanDiagrams(): Promise<DiagramEntry[]> {
   );
 }
 
-app.get("/api/diagrams", async (c) => {
-  const diagrams = await scanDiagrams();
-  return c.json(diagrams);
+// Mermaid API
+app.get("/api/mermaid/diagrams", async (c) => {
+  return c.json(await scanDiagrams("mermaid"));
 });
 
-app.get("/api/diagram/:project/:name", async (c) => {
+app.get("/api/mermaid/diagram/:project/:name", async (c) => {
   const { project, name } = c.req.param();
-  const filePath = join(DIAGRAMS_DIR, project, `${name}.mmd`);
+  const filePath = join(DIAGRAMS_DIR, "mermaid", project, `${name}.mmd`);
   try {
     const content = await readFile(filePath, "utf-8");
     return c.text(content);
@@ -72,6 +83,46 @@ app.get("/api/diagram/:project/:name", async (c) => {
   }
 });
 
+// DBML API — serves converted Mermaid ERD
+app.get("/api/dbml/diagrams", async (c) => {
+  return c.json(await scanDiagrams("dbml"));
+});
+
+app.get("/api/dbml/diagram/:project/:name", async (c) => {
+  const { project, name } = c.req.param();
+  const filePath = join(DIAGRAMS_DIR, "dbml", project, `${name}.dbml`);
+  try {
+    const content = await readFile(filePath, "utf-8");
+    const database = new Parser().parse(content, "dbmlv2");
+    const schema = database.schemas[0];
+
+    const tables = (schema?.tables || []).map((t: any) => ({
+      name: t.name,
+      fields: (t.fields || []).map((f: any) => ({
+        name: f.name,
+        type: f.type?.type_name || "unknown",
+        pk: !!f.pk,
+        unique: !!f.unique,
+        not_null: !!f.not_null,
+      })),
+    }));
+
+    const refs = (schema?.refs || []).map((r: any) => ({
+      endpoints: r.endpoints.map((ep: any) => ({
+        tableName: ep.tableName,
+        fieldNames: ep.fieldNames,
+        relation: ep.relation,
+      })),
+    }));
+
+    return c.json({ tables, refs });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    return c.json({ error: msg }, 500);
+  }
+});
+
+// SSE reload
 app.get("/api/reload", (c) => {
   const stream = new ReadableStream({
     start(controller) {
@@ -88,7 +139,11 @@ app.get("/api/reload", (c) => {
   });
 });
 
-app.get("/", serveStatic({ path: "./static/index.html" }));
+// Pages
+app.get("/mermaid", serveStatic({ path: "./static/mermaid.html" }));
+app.get("/assets/*", serveStatic({ root: "./dbml-dist" }));
+app.get("/dbml", serveStatic({ path: "./dbml-dist/index.html" }));
+app.get("/", (c) => c.redirect("/mermaid"));
 
 export default {
   port: 3333,

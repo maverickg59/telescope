@@ -1,0 +1,22 @@
+Table users {
+  id integer [pk, increment]
+  email varchar [unique, not null]
+  name varchar
+  created_at timestamp
+}
+
+Table posts {
+  id integer [pk, increment]
+  title varchar [not null]
+  body text
+  user_id integer [ref: > users.id]
+  created_at timestamp
+}
+
+Table comments {
+  id integer [pk, increment]
+  body text [not null]
+  user_id integer [ref: > users.id]
+  post_id integer [ref: > posts.id]
+  created_at timestamp
+}
