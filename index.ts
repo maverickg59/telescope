@@ -139,7 +139,8 @@ app.get("/api/reload", (c) => {
   });
 });
 
-// Pages
+// Static files + pages
+app.get("/static/*", serveStatic({ root: "./" }));
 app.get("/mermaid", serveStatic({ path: "./static/mermaid.html" }));
 app.get("/assets/*", serveStatic({ root: "./dbml-dist" }));
 app.get("/dbml", serveStatic({ path: "./dbml-dist/index.html" }));

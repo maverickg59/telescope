@@ -1,0 +1,158 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, system-ui, sans-serif;
+  background: #0f0f1a;
+  color: #e0e0e0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  background: #1a1a2e;
+  border-bottom: 1px solid #2a2a4a;
+}
+
+.nav-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e0e0e0;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+
+.nav-tabs {
+  display: flex;
+  margin-left: 1rem;
+  border: 1px solid #2a2a4a;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.nav-tab {
+  font-size: 0.8rem;
+  color: #666;
+  text-decoration: none;
+  padding: 0.3rem 0.75rem;
+}
+
+.nav-tab:hover {
+  color: #aaa;
+}
+
+.nav-tab.active {
+  color: #e0e0e0;
+  background: #2a2a4a;
+}
+
+.nav-controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+nav label {
+  font-size: 0.8rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+nav select {
+  background: #2a2a4a;
+  color: #e0e0e0;
+  border: 1px solid #3a3a5a;
+  border-radius: 4px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  width: 200px;
+}
+
+nav select:hover {
+  border-color: #5a5a8a;
+}
+
+#diagram-container {
+  flex: 1;
+  overflow: auto;
+  padding: 2rem;
+}
+
+#diagram-container .mermaid {
+  transform-origin: top left;
+  transition: transform 0.1s ease;
+}
+
+#diagram-container .mermaid svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.empty {
+  color: #666;
+  font-style: italic;
+}
+
+::-webkit-scrollbar {
+  background: #0f0f1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2a4a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a5a;
+}
+
+::-webkit-scrollbar-corner {
+  background: #0f0f1a;
+}
+
+.controls {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  display: flex;
+  flex-direction: column;
+  background: #1a1a2e;
+  border: 1px solid #2a2a4a;
+  border-radius: 6px;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.controls button {
+  background: none;
+  border: none;
+  color: #e0e0e0;
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #2a2a4a;
+}
+
+.controls button:last-child {
+  border-bottom: none;
+}
+
+.controls button:hover {
+  background: #2a2a4a;
+}
