@@ -11,6 +11,17 @@ const DIAGRAMS_DIR = join(import.meta.dir, "diagrams");
 // Live reload via SSE
 const clients = new Set<ReadableStreamDefaultController>();
 
+// Heartbeat every 240s to keep SSE alive within the 255s idle timeout
+setInterval(() => {
+  for (const client of clients) {
+    try {
+      client.enqueue(new TextEncoder().encode(": heartbeat\n\n"));
+    } catch {
+      clients.delete(client);
+    }
+  }
+}, 240_000);
+
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 watch(DIAGRAMS_DIR, { recursive: true }, () => {
@@ -148,5 +159,6 @@ app.get("/", (c) => c.redirect("/mermaid"));
 
 export default {
   port: 3333,
+  idleTimeout: 255,
   fetch: app.fetch,
 };
