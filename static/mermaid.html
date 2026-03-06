@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔭</text></svg>">
   <title>Mermaid Viewer</title>
   <style>
     * {
@@ -206,7 +207,7 @@
     mermaid.initialize({
       startOnLoad: false,
       theme: 'dark',
-      flowchart: { padding: 15 },
+      flowchart: { padding: 15, rankSpacing: 80, nodeSpacing: 60, subGraphTitleMargin: { top: 10, bottom: 10 }, wrappingWidth: 300, useMaxWidth: false },
       themeVariables: { fontSize: '20px' },
     });
 
@@ -238,21 +239,28 @@
         .join('');
     }
 
-    async function renderDiagram(project, name) {
+    async function renderDiagram(project, name, preserveTransform = false) {
       const res = await fetch(`/api/mermaid/diagram/${project}/${name}`);
       if (!res.ok) {
         container.innerHTML = '<p class="empty">Diagram not found</p>';
         return;
       }
       const code = await res.text();
-      container.innerHTML = '<div class="mermaid"></div>';
-      const el = container.querySelector('.mermaid');
+      // Render SVG off-screen first to avoid flicker
       const { svg } = await mermaid.render('diagram-svg', code);
+      let el = container.querySelector('.mermaid');
+      if (!el) {
+        container.innerHTML = '<div class="mermaid"></div>';
+        el = container.querySelector('.mermaid');
+      }
+      // Swap SVG content in place, preserving the container element and its transform
       el.innerHTML = svg;
-      scale = 1;
-      panX = 0;
-      panY = 0;
-      applyZoom();
+      if (!preserveTransform) {
+        scale = 1;
+        panX = 0;
+        panY = 0;
+      }
+      el.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
     }
 
     projectSelect.addEventListener('change', () => {
@@ -376,7 +384,7 @@
     // Live reload
     const sse = new EventSource('/api/reload');
     sse.onmessage = () => {
-      renderDiagram(projectSelect.value, diagramSelect.value);
+      renderDiagram(projectSelect.value, diagramSelect.value, true);
     };
 
     // Init
